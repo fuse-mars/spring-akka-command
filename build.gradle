@@ -19,7 +19,7 @@ springBoot {
 }
 
 jar {
-    baseName = 'akka-spring-query'
+    baseName = 'akka-spring-command'
     version =  '0.1.0'
 }
 

@@ -1,5 +1,7 @@
 package com.nshimiye.akka;
 
+import org.springframework.beans.factory.annotation.Value;
+
 import akka.actor.ActorRef;
 import akka.actor.Props;
 
@@ -18,6 +20,7 @@ public class AkkaInitializer {
 	private ActorRef writeWorker = null;
 	private ActorRef brokerWorker = null;
 
+	private @Value("${akka.actor.provider}") String akkaProvider;
 	public void subscribeActors() {
 		
 		System.out.println("[subscribeActors]  starting subscription process");
@@ -48,5 +51,8 @@ public class AkkaInitializer {
 		this.brokerWorker = AkkaFactory.getActorSystem(SystemType.REMOTE).actorOf(
 				Props.create(BrokerWorker.class), 
 				"brokerWorker");
+		
+		
+		System.out.println("Actor path: [] - " + this.akkaProvider);
 	}
 }
