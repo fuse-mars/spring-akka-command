@@ -12,7 +12,7 @@
   <body>
     <section class="page-header">
       <h1 class="project-name">Spring-akka-command</h1>
-      <h2 class="project-tagline">C in CQRS</h2>
+      <h2 class="project-tagline">Implmenting C in CQRS using Akka actors inside a spring-boot project</h2>
       <a href="https://github.com/fuse-mars/spring-akka-command" class="btn">View on GitHub</a>
       <a href="https://github.com/fuse-mars/spring-akka-command/zipball/master" class="btn">Download .zip</a>
       <a href="https://github.com/fuse-mars/spring-akka-command/tarball/master" class="btn">Download .tar.gz</a>
@@ -20,10 +20,20 @@
 
     <section class="main-content">
       <h3>
-<a id="simple-explanation-of-the-code" class="anchor" href="#simple-explanation-of-the-code" aria-hidden="true"><span class="octicon octicon-link"></span></a>Simple explanation of the code</h3>
+<a id="overview" class="anchor" href="#overview" aria-hidden="true"><span class="octicon octicon-link"></span></a>Overview</h3>
 
-<p>User sends a request (restful) to save a record, the controller then creates a command asking the writeWorker to write this record to db. After that an event is published to the Event-stream.
-<img src="https://raw.githubusercontent.com/fuse-mars/spring-akka-command/master/extra-resource/design-schematic.png" alt="Design Schematic"></p>
+<p><img src="https://raw.githubusercontent.com/fuse-mars/spring-akka-command/master/extra-resource/design-schematic.png" alt="Design Schematic"></p>
+
+<h3>
+<a id="simple-explanation-of-the-app" class="anchor" href="#simple-explanation-of-the-app" aria-hidden="true"><span class="octicon octicon-link"></span></a>Simple explanation of the app</h3>
+
+<p>User sends a request (restful) to save a record, the controller then creates a command asking the writeWorker to write this record to db. After that an event is published to the Event-stream.</p>
+
+<p>Rest API</p>
+
+<ul>
+<li>/api/expenses/write?name=&amp;amount=</li>
+</ul>
 
 <h3>
 <a id="local-connection" class="anchor" href="#local-connection" aria-hidden="true"><span class="octicon octicon-link"></span></a>Local connection</h3>
