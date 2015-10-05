@@ -20,19 +20,146 @@
 
     <section class="main-content">
       <h3>
-<a id="overview" class="anchor" href="#overview" aria-hidden="true"><span class="octicon octicon-link"></span></a>Overview</h3>
+<a id="simple-explanation-of-the-code" class="anchor" href="#simple-explanation-of-the-code" aria-hidden="true"><span class="octicon octicon-link"></span></a>Simple explanation of the code</h3>
+
+<p>User sends a request (restful) to save a record, the controller then creates a command asking the writeWorker to write this record to db. After that an event is published to the Event-stream.</p>
+
+<p>Note: command is the record to be saved (for simplicity)
+<img src="https://github.com/fuse-mars/spring-akka-command/blob/master/extra-resource/design-schematic.png" alt="Design Schematic"></p>
+
+<h3>
+<a id="local-connection" class="anchor" href="#local-connection" aria-hidden="true"><span class="octicon octicon-link"></span></a>Local connection</h3>
+
+<div class="highlight highlight-source-java"><pre><span class="pl-c">//command ... com.nshimiye.cqrs.writer.akka.WriteWorker</span>
+<span class="pl-smi">ActorSelection</span> brokerWorker <span class="pl-k">=</span> <span class="pl-smi">AkkaFactory</span><span class="pl-k">.</span>getActorSystem(<span class="pl-smi">SystemType</span><span class="pl-c1"><span class="pl-k">.</span>REMOTE</span>)
+                            .actorSelection(<span class="pl-s"><span class="pl-pds">"</span>/user/brokerWorker<span class="pl-pds">"</span></span>);</pre></div>
+
+<p><code>/user/brokerWorker</code> is the local path of <strong>brokerWorker</strong> actor</p>
 
 <h3>
 <a id="remote-connection" class="anchor" href="#remote-connection" aria-hidden="true"><span class="octicon octicon-link"></span></a>Remote connection</h3>
 
+<p>Akka Actors connect using either TCP or UDP. In this tutorial, we use TCP connection.
+Example below shows how it is done</p>
+
+<div class="highlight highlight-source-java"><pre><span class="pl-c">// query ... com.nshimiye.akka.AkkaInitializer</span>
+<span class="pl-c">// Akka configuration values</span>
+<span class="pl-k">private</span> <span class="pl-k">final</span> <span class="pl-smi">String</span> <span class="pl-c1">BROKER_URL</span> <span class="pl-k">=</span> <span class="pl-s"><span class="pl-pds">"</span>akka.tcp://AKKAREMOTESystem@192.168.99.101:2555/user/brokerWorker<span class="pl-pds">"</span></span>;
+<span class="pl-c1">...</span>
+<span class="pl-smi">ActorSelection</span> messageBrokerFinder <span class="pl-k">=</span> <span class="pl-smi">AkkaFactory</span><span class="pl-k">.</span>getActorSystem(<span class="pl-smi">SystemType</span><span class="pl-c1"><span class="pl-k">.</span>REMOTE</span>)
+       .actorSelection(<span class="pl-c1">BROKER_URL</span>);</pre></div>
+
+<p><code>akka.tcp://AKKAREMOTESystem@192.168.99.101:2555/user/brokerWorker</code> is the remote path of <strong>brokerWorker</strong> actor.</p>
+
 <h3>
 <a id="configuration" class="anchor" href="#configuration" aria-hidden="true"><span class="octicon octicon-link"></span></a>Configuration</h3>
+
+<p>When an actor system is created, it looks for configuration information from the <code>application.conf</code> and/or <code>reference.conf</code> files. These files are assumed to be in the resource folder of the application.</p>
+
+<p>If none of these are found, the <a href="http://doc.akka.io/docs/akka/snapshot/general/configuration.html#akka-actor">default configuration</a> is used</p>
+
+<p>Below are the required configuration for creating a remote system:</p>
+
+<pre><code>// command ... application.conf
+akka {
+    actor {
+      provider = "akka.remote.RemoteActorRefProvider"
+      serialization-bindings {
+        # specify java objects that need to be serialized and the serialization type to be used
+      }
+    }
+    remote {
+      enabled-transports = ["akka.remote.netty.tcp"]
+      netty.tcp {
+      hostname = 192.168.99.101     # external (logical) hostname, ex: my.domain.com
+      port = 2555                   # external (logical) port
+
+      bind-hostname = 0.0.0.0       # internal (bind) hostname, ex: local.address 
+      bind-port = 2553              # internal (bind) port
+      }
+   }
+}
+</code></pre>
+
+<ul>
+<li>
+<code>hostname</code> and <code>port</code> are used by the actor system to listen to incoming connections from other outside actors.
+Note: These outside actors have to be part of remote system (same or different from the listening system) in order to connect.</li>
+<li>serialization is very important because it informs the system on how to read/convert the received/sent data over a tcp connection.</li>
+</ul>
 
 <h3>
 <a id="actors" class="anchor" href="#actors" aria-hidden="true"><span class="octicon octicon-link"></span></a>Actors</h3>
 
+<p>Two different types of actor exist:</p>
+
+<ul>
+<li>Local actor: actor created inside a local system</li>
+<li>Remote actor: actor created inside a remote system</li>
+<li>Local actors can only communication with other (local and remote) actors on the same JVM</li>
+<li>Remote actor can interact with actors on the same JVM and other remote actors on different JVM or different physical machine.</li>
+</ul>
+
+<p>Example of actor creation:</p>
+
+<ul>
+<li>W application</li>
+</ul>
+
+<div class="highlight highlight-source-java"><pre><span class="pl-c">// command ...</span>
+<span class="pl-c">// local actor</span>
+writeWorker <span class="pl-k">=</span> <span class="pl-smi">AkkaFactory</span><span class="pl-k">.</span>getActorSystem(<span class="pl-smi">SystemType</span><span class="pl-c1"><span class="pl-k">.</span>LOCAL</span>)<span class="pl-k">.</span>actorOf(
+<span class="pl-smi">WriteWorker</span><span class="pl-k">.</span>createWorker(), <span class="pl-s"><span class="pl-pds">"</span>writeWorker<span class="pl-pds">"</span></span>);
+<span class="pl-c">// remote actor</span>
+brokerWorker <span class="pl-k">=</span> <span class="pl-smi">AkkaFactory</span><span class="pl-k">.</span>getActorSystem(<span class="pl-smi">SystemType</span><span class="pl-c1"><span class="pl-k">.</span>REMOTE</span>)<span class="pl-k">.</span>actorOf(
+<span class="pl-smi">Props</span><span class="pl-k">.</span>create(<span class="pl-smi">BrokerWorker</span><span class="pl-k">.</span>class), <span class="pl-s"><span class="pl-pds">"</span>brokerWorker<span class="pl-pds">"</span></span>);</pre></div>
+
+<ul>
+<li>R application</li>
+</ul>
+
+<div class="highlight highlight-source-java"><pre><span class="pl-c">// query ...</span>
+denomalizer <span class="pl-k">=</span> <span class="pl-smi">AkkaFactory</span><span class="pl-k">.</span>getActorSystem(<span class="pl-smi">SystemType</span><span class="pl-c1"><span class="pl-k">.</span>REMOTE</span>)<span class="pl-k">.</span>actorOf(
+<span class="pl-smi">Props</span><span class="pl-k">.</span>create(<span class="pl-smi">DenomalizerWorker</span><span class="pl-k">.</span>class), <span class="pl-s"><span class="pl-pds">"</span>denomalizer<span class="pl-pds">"</span></span>);</pre></div>
+
+<p><code>writeWorker</code> can interact with <code>brokerWorker</code>. However, it cannot interact with <code>denomalizer</code> because they are not on the machines.</p>
+
 <h3>
 <a id="event-bus" class="anchor" href="#event-bus" aria-hidden="true"><span class="octicon octicon-link"></span></a>Event Bus</h3>
+
+<ul>
+<li>Event Bus is a message broker and it's role is to facilitate communication between akka actors.</li>
+<li>Each Akka system has a builtin event bus called <strong>Event Stream</strong>.</li>
+<li>Event Stream can be used to send messages to multiple actors at once (publish-subscribe model).
+Below is an example usage</li>
+</ul>
+
+<div class="highlight highlight-source-java"><pre><span class="pl-c">// command ... com.nshimiye.messaging.BrokerWorker</span>
+getContext()<span class="pl-k">.</span>system()<span class="pl-k">.</span>eventStream()<span class="pl-k">.</span>subscribe(getSender(), <span class="pl-smi">Envelope</span><span class="pl-k">.</span>class);
+<span class="pl-c1">...</span>
+getContext()<span class="pl-k">.</span>system()<span class="pl-k">.</span>eventStream()<span class="pl-k">.</span>publish((<span class="pl-smi">Envelope</span>) message);</pre></div>
+
+<p>In the above example, two things are happening:</p>
+
+<ul>
+<li>brokerWorker subscribes an actor <code>getSender()</code> that requests to be subscribed.</li>
+<li>Later the brokerWorker publishes an event of type <code>Envelope</code> to the Event Stream. After this, the Event Stream will send a message to the subscribed actors.</li>
+</ul>
+
+<h3>
+<a id="running" class="anchor" href="#running" aria-hidden="true"><span class="octicon octicon-link"></span></a>Running</h3>
+
+<ul>
+<li>Using docker
+
+<ul>
+<li><code>gradle clean buildDocker</code></li>
+<li><code>docker run --rm=true -e HOSTNAME=192.168.99.101 --net=host springio/akka-spring-command</code></li>
+</ul>
+</li>
+</ul>
+
+<p>The important part here is <code>--net=host</code>, which tells the container to bind itself to the docker's main ipaddress instead of going through NAT.</p>
 
       <footer class="site-footer">
         <span class="site-footer-owner"><a href="https://github.com/fuse-mars/spring-akka-command">Spring-akka-command</a> is maintained by <a href="https://github.com/fuse-mars">fuse-mars</a>.</span>
