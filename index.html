@@ -23,7 +23,6 @@
 <a id="simple-explanation-of-the-code" class="anchor" href="#simple-explanation-of-the-code" aria-hidden="true"><span class="octicon octicon-link"></span></a>Simple explanation of the code</h3>
 
 <p>User sends a request (restful) to save a record, the controller then creates a command asking the writeWorker to write this record to db. After that an event is published to the Event-stream.
-Note: command is the record to be saved (for simplicity)
 <img src="https://raw.githubusercontent.com/fuse-mars/spring-akka-command/master/extra-resource/design-schematic.png" alt="Design Schematic"></p>
 
 <h3>
@@ -38,7 +37,7 @@ Note: command is the record to be saved (for simplicity)
 <h3>
 <a id="remote-connection" class="anchor" href="#remote-connection" aria-hidden="true"><span class="octicon octicon-link"></span></a>Remote connection</h3>
 
-<p>Akka Actors connect using either TCP or UDP. In this tutorial, we use TCP connection.
+<p>Remote Akka Actors connect using either TCP or UDP. In our case, we use TCP connection.
 Example below shows how it is done</p>
 
 <div class="highlight highlight-source-java"><pre><span class="pl-c">// query ... com.nshimiye.akka.AkkaInitializer</span>
@@ -105,21 +104,18 @@ Note: These outside actors have to be part of remote system (same or different f
 <li>W application</li>
 </ul>
 
-<div class="highlight highlight-source-java"><pre><span class="pl-c">// command ...</span>
+<div class="highlight highlight-source-java"><pre><span class="pl-c">// command ... com.nshimiye.akka.AkkaInitializer</span>
 <span class="pl-c">// local actor</span>
-writeWorker <span class="pl-k">=</span> <span class="pl-smi">AkkaFactory</span><span class="pl-k">.</span>getActorSystem(<span class="pl-smi">SystemType</span><span class="pl-c1"><span class="pl-k">.</span>LOCAL</span>)<span class="pl-k">.</span>actorOf(
-<span class="pl-smi">WriteWorker</span><span class="pl-k">.</span>createWorker(), <span class="pl-s"><span class="pl-pds">"</span>writeWorker<span class="pl-pds">"</span></span>);
+writeWorker <span class="pl-k">=</span> <span class="pl-smi">AkkaFactory</span><span class="pl-k">.</span>getActorSystem(<span class="pl-smi">SystemType</span><span class="pl-c1"><span class="pl-k">.</span>LOCAL</span>)<span class="pl-k">.</span>actorOf(<span class="pl-smi">WriteWorker</span><span class="pl-k">.</span>createWorker(), <span class="pl-s"><span class="pl-pds">"</span>writeWorker<span class="pl-pds">"</span></span>);
 <span class="pl-c">// remote actor</span>
-brokerWorker <span class="pl-k">=</span> <span class="pl-smi">AkkaFactory</span><span class="pl-k">.</span>getActorSystem(<span class="pl-smi">SystemType</span><span class="pl-c1"><span class="pl-k">.</span>REMOTE</span>)<span class="pl-k">.</span>actorOf(
-<span class="pl-smi">Props</span><span class="pl-k">.</span>create(<span class="pl-smi">BrokerWorker</span><span class="pl-k">.</span>class), <span class="pl-s"><span class="pl-pds">"</span>brokerWorker<span class="pl-pds">"</span></span>);</pre></div>
+brokerWorker <span class="pl-k">=</span> <span class="pl-smi">AkkaFactory</span><span class="pl-k">.</span>getActorSystem(<span class="pl-smi">SystemType</span><span class="pl-c1"><span class="pl-k">.</span>REMOTE</span>)<span class="pl-k">.</span>actorOf(<span class="pl-smi">Props</span><span class="pl-k">.</span>create(<span class="pl-smi">BrokerWorker</span><span class="pl-k">.</span>class), <span class="pl-s"><span class="pl-pds">"</span>brokerWorker<span class="pl-pds">"</span></span>);</pre></div>
 
 <ul>
 <li>R application</li>
 </ul>
 
-<div class="highlight highlight-source-java"><pre><span class="pl-c">// query ...</span>
-denomalizer <span class="pl-k">=</span> <span class="pl-smi">AkkaFactory</span><span class="pl-k">.</span>getActorSystem(<span class="pl-smi">SystemType</span><span class="pl-c1"><span class="pl-k">.</span>REMOTE</span>)<span class="pl-k">.</span>actorOf(
-<span class="pl-smi">Props</span><span class="pl-k">.</span>create(<span class="pl-smi">DenomalizerWorker</span><span class="pl-k">.</span>class), <span class="pl-s"><span class="pl-pds">"</span>denomalizer<span class="pl-pds">"</span></span>);</pre></div>
+<div class="highlight highlight-source-java"><pre><span class="pl-c">// query ... com.nshimiye.akka.AkkaInitializer</span>
+denomalizer <span class="pl-k">=</span> <span class="pl-smi">AkkaFactory</span><span class="pl-k">.</span>getActorSystem(<span class="pl-smi">SystemType</span><span class="pl-c1"><span class="pl-k">.</span>REMOTE</span>)<span class="pl-k">.</span>actorOf(<span class="pl-smi">Props</span><span class="pl-k">.</span>create(<span class="pl-smi">DenomalizerWorker</span><span class="pl-k">.</span>class), <span class="pl-s"><span class="pl-pds">"</span>denomalizer<span class="pl-pds">"</span></span>);</pre></div>
 
 <p><code>writeWorker</code> can interact with <code>brokerWorker</code>. However, it cannot interact with <code>denomalizer</code> because they are not on the machines.</p>
 
